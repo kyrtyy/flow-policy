@@ -33,7 +33,7 @@ Three training seeds, 50 evaluation episodes each (eval seed 100000, same initia
 | Shortcut (Flow + step-size conditioning, 40k fine-tune) | 1 | 55.3 ± 5.0 | 0.917 |
 | Shortcut | 2 / 4 / 10 | 50.7 / 48.7 / 66.0 | 0.91–0.94 |
 | Reflow (distilled from Flow, 10-step teacher, 20k) | 1 / 2 / 4 | 47.3 / 57.3 / 55.3 | 0.90–0.94 |
-| Shortcut 1-pass + Diffusion plan every 4th chunk (2 of 3 seeds) | mixed | **67.0 ± 4.2** | 0.948 |
+| Shortcut 1-pass + Diffusion plan every 4th chunk | mixed | **66.7 ± 3.1** | 0.948 |
 | Reflow 1-pass + Diffusion plan every 4th chunk | mixed | 61.3 ± 1.2 | 0.941 |
 | Flow 1-pass + Diffusion plan every 4th chunk | mixed | 60.7 ± 8.1 | 0.952 |
 | ACT | 1 | 26.7 ± 6.1 | 0.710 |
@@ -58,10 +58,10 @@ Tested on reflow and shortcut at 1 pass (3 seeds unless noted). `n_action_steps`
 | Replan every 4 + warm start 0.3 | 26.0 | 35.3 |
 | Replan every 4 + temperature 0.5 | 16.7 | 26.7 |
 | Commit to 12 actions | 34.0 | 42.7 |
-| Commit to 12 + temperature 0.8 | 40.7 | 48.0 (2 seeds) |
+| Commit to 12 + temperature 0.8 | 40.7 | 49.3 |
 | 2 passes, replan every 4 | 24.0 | 32.0 |
 | 2 passes, commit to 12 | 50.0 | 46.7 |
-| Diffusion plan every 4th chunk | **61.3** | **67.0** (2 seeds) |
+| Diffusion plan every 4th chunk | **61.3** | **66.7** |
 
 - The default of 8 actions per chunk is clearly best. Replanning more often costs 17–20 points, likely because the policy switches strategy between chunks. Committing longer also hurts.
 - Noise temperature 0.8 is within noise of the default; 0.5 hurts.
@@ -81,7 +81,6 @@ At full size, most 1-pass failures are near misses (final coverage ≥ 0.85), no
 ### Open
 
 - Final evaluation at 200 episodes per seed, with latency measured on an idle GPU, to shrink the ±5-point noise.
-- The third seed of shortcut + Diffusion guide.
 - Why shortcut is worse at 2–4 passes than at 1 pass.
 
 ## Layout

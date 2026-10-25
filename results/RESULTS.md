@@ -58,7 +58,7 @@ Pooled over training seeds from each run's `eval_info.json` with `python scripts
 | explore_reflow | reflow | 2_a4 | 3 | 24.0 ± 5.3 | 0.899 | 114 | 10 | 94 |
 | explore_reflow | reflow | guide4_1_w0.5 | 3 | 61.3 ± 1.2 | 0.941 | 58 | 9 | 40 |
 | explore_shortcut | shortcut | 1_a12 | 3 | 42.7 ± 13.6 | 0.867 | 86 | 22 | 51 |
-| explore_shortcut | shortcut | 1_a12_n0.8 | 2 | 48.0 ± 8.5 | 0.886 | 52 | 12 | 32 |
+| explore_shortcut | shortcut | 1_a12_n0.8 | 3 | 49.3 ± 6.4 | 0.887 | 76 | 18 | 45 |
 | explore_shortcut | shortcut | 1_a4 | 3 | 38.0 ± 6.0 | 0.917 | 93 | 11 | 75 |
 | explore_shortcut | shortcut | 1_a4_n0.5 | 3 | 26.7 ± 11.7 | 0.874 | 110 | 13 | 75 |
 | explore_shortcut | shortcut | 1_a4_w0.3 | 3 | 35.3 ± 8.1 | 0.907 | 97 | 10 | 77 |
@@ -66,7 +66,7 @@ Pooled over training seeds from each run's `eval_info.json` with `python scripts
 | explore_shortcut | shortcut | 1_n0.8 | 3 | 56.7 ± 5.8 | 0.916 | 65 | 13 | 42 |
 | explore_shortcut | shortcut | 2_a12 | 3 | 46.7 ± 12.2 | 0.916 | 80 | 9 | 55 |
 | explore_shortcut | shortcut | 2_a4 | 3 | 32.0 ± 5.3 | 0.911 | 102 | 8 | 80 |
-| explore_shortcut | shortcut | guide4_1_w0.5 | 2 | 67.0 ± 4.2 | 0.948 | 33 | 4 | 22 |
+| explore_shortcut | shortcut | guide4_1_w0.5 | 3 | 66.7 ± 3.1 | 0.948 | 50 | 7 | 35 |
 | guided_full | flow | guide0_1_w0.5 | 3 | 50.7 ± 9.0 | 0.913 | 74 | 13 | 52 |
 | guided_full | flow | guide2_1_w0.5 | 3 | 60.0 ± 3.5 | 0.943 | 60 | 6 | 42 |
 | guided_full | flow | guide4_1_w0.5 | 3 | 60.7 ± 8.1 | 0.952 | 59 | 6 | 46 |
