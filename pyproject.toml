@@ -1,0 +1,16 @@
+[project]
+# Name must start with "lerobot_policy_" so LeRobot's CLIs auto-import it as a plugin.
+name = "lerobot_policy_flowpolicy"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "lerobot[pusht,diffusion,training,evaluation]==0.6.1",
+    "pytest",
+]
+
+[build-system]
+requires = ["setuptools>=71"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

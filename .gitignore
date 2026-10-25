@@ -1,0 +1,16 @@
+.venv/
+outputs/
+logs/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+ckpt/
+full/
+*.log
+.DS_Store
+yashdewangan@*/
+results/**/videos/
+results/demo/*/
+results/demo/episode_*.mp4
+results/demo/label_*.png
+results/demo/list.txt

@@ -1,0 +1,71 @@
+# All results (PushT, 50 episodes per training seed, eval seed 100000)
+
+Pooled over training seeds from each run's `eval_info.json` with `python scripts/breakdown.py results/<dir> ...`. Failures split by final coverage: gross (< 0.6) vs near miss (>= 0.85). `*_full` and `full` = full-size models (200k steps; reflow 20k and shortcut 40k fine-tunes on top); `fast`, `guided`, `flowln` = small models (40k steps).
+
+| results | policy | variant | seeds | success % | coverage | fails | gross <0.6 | near >=0.85 |
+|---|---|---|---|---|---|---|---|---|
+| full | act | default | 3 | 26.7 ± 6.1 | 0.710 | 110 | 56 | 45 |
+| full | bcmlp | default | 1 | 38.0 ± 0.0 | 0.770 | 31 | 12 | 16 |
+| full | diffusion | DDIM_1 | 3 | 0.0 ± 0.0 | 0.156 | 150 | 148 | 0 |
+| full | diffusion | DDIM_10 | 3 | 56.0 ± 0.0 | 0.945 | 66 | 4 | 46 |
+| full | diffusion | DDIM_100 | 3 | 58.0 ± 8.7 | 0.945 | 63 | 2 | 43 |
+| full | diffusion | DDIM_2 | 3 | 47.3 ± 13.6 | 0.923 | 79 | 12 | 54 |
+| full | diffusion | DDIM_4 | 3 | 55.3 ± 2.3 | 0.932 | 67 | 10 | 47 |
+| full | diffusion | DDPM_1 | 3 | 0.0 ± 0.0 | 0.156 | 150 | 148 | 0 |
+| full | diffusion | DDPM_10 | 3 | 56.0 ± 9.2 | 0.921 | 66 | 8 | 37 |
+| full | diffusion | DDPM_100 | 3 | 60.7 ± 2.3 | 0.922 | 59 | 9 | 32 |
+| full | diffusion | DDPM_2 | 3 | 44.0 ± 2.0 | 0.913 | 84 | 10 | 58 |
+| full | diffusion | DDPM_4 | 3 | 54.7 ± 7.0 | 0.927 | 68 | 9 | 44 |
+| full | flow | 1 | 3 | 41.3 ± 4.2 | 0.903 | 88 | 17 | 63 |
+| full | flow | 10 | 3 | 57.3 ± 2.3 | 0.927 | 64 | 10 | 44 |
+| full | flow | 100 | 3 | 60.7 ± 8.3 | 0.926 | 59 | 9 | 36 |
+| full | flow | 2 | 3 | 46.7 ± 3.1 | 0.915 | 80 | 14 | 61 |
+| full | flow | 4 | 3 | 55.3 ± 6.4 | 0.926 | 67 | 10 | 49 |
+| reflow_full | reflow | 1 | 3 | 47.3 ± 3.1 | 0.899 | 79 | 18 | 53 |
+| reflow_full | reflow | 10 | 3 | 58.7 ± 11.0 | 0.928 | 62 | 10 | 41 |
+| reflow_full | reflow | 100 | 3 | 55.3 ± 7.0 | 0.918 | 67 | 13 | 44 |
+| reflow_full | reflow | 2 | 3 | 57.3 ± 3.1 | 0.919 | 64 | 11 | 39 |
+| reflow_full | reflow | 4 | 3 | 55.3 ± 3.1 | 0.939 | 67 | 5 | 49 |
+| shortcut_full | shortcut | 1 | 2 | 55.0 ± 7.1 | 0.903 | 45 | 9 | 24 |
+| shortcut_full | shortcut | 10 | 2 | 67.0 ± 4.2 | 0.941 | 33 | 6 | 21 |
+| shortcut_full | shortcut | 100 | 2 | 62.0 ± 5.7 | 0.914 | 38 | 8 | 20 |
+| shortcut_full | shortcut | 2 | 2 | 49.0 ± 1.4 | 0.900 | 51 | 8 | 31 |
+| shortcut_full | shortcut | 4 | 2 | 48.0 ± 2.8 | 0.918 | 52 | 6 | 35 |
+| guided_full | flow | guide0_1_w0.5 | 3 | 50.7 ± 9.0 | 0.913 | 74 | 13 | 52 |
+| guided_full | flow | guide2_1_w0.5 | 3 | 60.0 ± 3.5 | 0.943 | 60 | 6 | 42 |
+| guided_full | flow | guide4_1_w0.5 | 3 | 60.7 ± 8.1 | 0.952 | 59 | 6 | 46 |
+| combo_full | reflow | 1_w0.3 | 3 | 53.3 ± 1.2 | 0.907 | 70 | 12 | 47 |
+| combo_full | reflow | [0,0.1,1] | 3 | 53.3 ± 6.1 | 0.917 | 70 | 10 | 45 |
+| combo_full | reflow | [0,0.1,1]_w0.3 | 3 | 44.7 ± 9.0 | 0.894 | 83 | 15 | 54 |
+| combo_full | reflow | guide0_1_w0.5 | 3 | 49.3 ± 6.4 | 0.929 | 76 | 9 | 57 |
+| combo_full | reflow | guide4_1_w0.5 | 3 | 57.3 ± 8.1 | 0.942 | 64 | 7 | 49 |
+| hybrid_full | flow | 1_w0.3 | 3 | 52.0 ± 2.0 | 0.921 | 72 | 11 | 52 |
+| hybrid_full | flow | 1_w0.6 | 3 | 50.7 ± 3.1 | 0.898 | 74 | 13 | 46 |
+| hybrid_full | flow | [0,0.05,0.15,1] | 3 | 47.3 ± 1.2 | 0.899 | 79 | 14 | 48 |
+| hybrid_full | flow | [0,0.1,1] | 3 | 50.7 ± 5.0 | 0.915 | 74 | 13 | 49 |
+| hybrid_full | flow | [0,0.1,1]_w0.3 | 3 | 50.0 ± 3.5 | 0.903 | 75 | 13 | 49 |
+| fast | act | default | 3 | 20.7 ± 7.0 | 0.644 | 119 | 68 | 36 |
+| fast | bcmlp | default | 3 | 18.0 ± 10.4 | 0.686 | 123 | 56 | 48 |
+| fast | diffusion | DDIM_1 | 3 | 0.0 ± 0.0 | 0.139 | 150 | 148 | 0 |
+| fast | diffusion | DDIM_10 | 3 | 38.0 ± 10.0 | 0.901 | 93 | 16 | 62 |
+| fast | diffusion | DDIM_100 | 3 | 48.0 ± 11.1 | 0.929 | 78 | 6 | 52 |
+| fast | diffusion | DDIM_2 | 3 | 31.3 ± 3.1 | 0.862 | 103 | 23 | 64 |
+| fast | diffusion | DDIM_4 | 3 | 37.3 ± 9.0 | 0.920 | 94 | 9 | 69 |
+| fast | diffusion | DDPM_1 | 3 | 0.0 ± 0.0 | 0.144 | 150 | 148 | 0 |
+| fast | diffusion | DDPM_10 | 3 | 43.3 ± 8.1 | 0.928 | 85 | 6 | 61 |
+| fast | diffusion | DDPM_100 | 3 | 50.7 ± 1.2 | 0.927 | 74 | 6 | 50 |
+| fast | diffusion | DDPM_2 | 3 | 28.7 ± 7.0 | 0.815 | 107 | 30 | 57 |
+| fast | diffusion | DDPM_4 | 3 | 38.7 ± 6.1 | 0.909 | 92 | 10 | 64 |
+| fast | flow | 1 | 3 | 43.3 ± 11.5 | 0.889 | 85 | 18 | 57 |
+| fast | flow | 10 | 3 | 46.7 ± 8.1 | 0.921 | 80 | 9 | 55 |
+| fast | flow | 100 | 3 | 49.3 ± 10.1 | 0.925 | 76 | 10 | 49 |
+| fast | flow | 2 | 3 | 49.3 ± 22.1 | 0.913 | 76 | 14 | 51 |
+| fast | flow | 4 | 3 | 45.3 ± 11.7 | 0.906 | 82 | 13 | 55 |
+| guided | flow | guide0_1_w0.5 | 3 | 48.0 ± 14.4 | 0.920 | 78 | 9 | 54 |
+| guided | flow | guide2_1_w0.5 | 3 | 53.3 ± 1.2 | 0.943 | 70 | 5 | 49 |
+| guided | flow | guide4_1_w0.5 | 3 | 54.7 ± 3.1 | 0.925 | 68 | 7 | 41 |
+| flowln | flowln | 1 | 3 | 2.7 ± 1.2 | 0.666 | 146 | 63 | 44 |
+| flowln | flowln | 10 | 3 | 32.7 ± 14.0 | 0.908 | 101 | 9 | 68 |
+| flowln | flowln | 100 | 3 | 38.7 ± 10.1 | 0.913 | 92 | 9 | 65 |
+| flowln | flowln | 2 | 3 | 29.3 ± 9.0 | 0.894 | 106 | 9 | 70 |
+| flowln | flowln | 4 | 3 | 31.3 ± 4.2 | 0.890 | 103 | 13 | 69 |
