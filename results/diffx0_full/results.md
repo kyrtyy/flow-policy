@@ -1,0 +1,33 @@
+| run | policy | variant | success % | coverage | latency ms |
+|---|---|---|---|---|---|
+| random | random | - | 0.0 | 0.162 | 0.0 |
+| diffx0_s1000_200000 | diffusion | DDPM_1 | 36.0 | 0.859 | 7.2 |
+| diffx0_s1000_200000 | diffusion | DDPM_2 | 52.0 | 0.889 | 9.5 |
+| diffx0_s1000_200000 | diffusion | DDPM_4 | 54.0 | 0.867 | 20.6 |
+| diffx0_s1000_200000 | diffusion | DDPM_10 | 48.0 | 0.840 | 43.7 |
+| diffx0_s1000_200000 | diffusion | DDPM_100 | 38.0 | 0.874 | 381.6 |
+| diffx0_s1000_200000 | diffusion | DDIM_1 | 46.0 | 0.829 | 6.5 |
+| diffx0_s1000_200000 | diffusion | DDIM_2 | 44.0 | 0.860 | 11.6 |
+| diffx0_s1000_200000 | diffusion | DDIM_4 | 40.0 | 0.861 | 20.6 |
+| diffx0_s1000_200000 | diffusion | DDIM_10 | 42.0 | 0.902 | 40.5 |
+| diffx0_s1000_200000 | diffusion | DDIM_100 | 42.0 | 0.834 | 381.7 |
+| diffx0_s1001_200000 | diffusion | DDPM_1 | 48.0 | 0.930 | 7.1 |
+| diffx0_s1001_200000 | diffusion | DDPM_2 | 42.0 | 0.926 | 11.6 |
+| diffx0_s1001_200000 | diffusion | DDPM_4 | 58.0 | 0.920 | 20.6 |
+| diffx0_s1001_200000 | diffusion | DDPM_10 | 48.0 | 0.918 | 47.6 |
+| diffx0_s1001_200000 | diffusion | DDPM_100 | 42.0 | 0.932 | 381.5 |
+| diffx0_s1001_200000 | diffusion | DDIM_1 | 54.0 | 0.892 | 7.0 |
+| diffx0_s1001_200000 | diffusion | DDIM_2 | 44.0 | 0.907 | 11.4 |
+| diffx0_s1001_200000 | diffusion | DDIM_4 | 34.0 | 0.889 | 19.8 |
+| diffx0_s1001_200000 | diffusion | DDIM_10 | 44.0 | 0.900 | 45.8 |
+| diffx0_s1001_200000 | diffusion | DDIM_100 | 34.0 | 0.900 | 381.5 |
+| diffx0_s1002_200000 | diffusion | DDPM_1 | 38.0 | 0.936 | 6.6 |
+| diffx0_s1002_200000 | diffusion | DDPM_2 | 38.0 | 0.922 | 9.4 |
+| diffx0_s1002_200000 | diffusion | DDPM_4 | 48.0 | 0.919 | 20.7 |
+| diffx0_s1002_200000 | diffusion | DDPM_10 | 58.0 | 0.935 | 47.3 |
+| diffx0_s1002_200000 | diffusion | DDPM_100 | 46.0 | 0.880 | 381.6 |
+| diffx0_s1002_200000 | diffusion | DDIM_1 | 52.0 | 0.923 | 5.5 |
+| diffx0_s1002_200000 | diffusion | DDIM_2 | 48.0 | 0.877 | 11.5 |
+| diffx0_s1002_200000 | diffusion | DDIM_4 | 52.0 | 0.920 | 19.9 |
+| diffx0_s1002_200000 | diffusion | DDIM_10 | 34.0 | 0.907 | 45.4 |
+| diffx0_s1002_200000 | diffusion | DDIM_100 | 42.0 | 0.895 | 381.5 |

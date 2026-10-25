@@ -52,6 +52,23 @@ COMBO = [
 ]
 
 
+# Stack the cheap inference-time knobs on the best few-step models (shortcut, reflow): replan more often
+# (n_action_steps 4 instead of 8) or less often (12), lower noise temperature, warm start, diffusion guide.
+EXPLORE = [
+    {"num_inference_steps": 1, "n_action_steps": 4},
+    {"num_inference_steps": 1, "n_action_steps": 4, "warm_start": 0.3},
+    {"num_inference_steps": 1, "noise_scale": 0.5},
+    {"num_inference_steps": 1, "noise_scale": 0.8},
+    {"num_inference_steps": 1, "n_action_steps": 4, "noise_scale": 0.5},
+    {"num_inference_steps": 2, "n_action_steps": 4},
+    # Replanning more often hurt (mode switching between chunks), so also try committing longer.
+    {"num_inference_steps": 1, "n_action_steps": 12},
+    {"num_inference_steps": 2, "n_action_steps": 12},
+    {"num_inference_steps": 1, "n_action_steps": 12, "noise_scale": 0.8},
+    GUIDED[1],
+]
+
+
 def variants(policy_type: str, sets: list[str]) -> list[dict]:
     """Config overrides to evaluate for each policy type. `sets` picks HYBRID/GUIDED/COMBO instead of the default."""
     if sets:
@@ -68,7 +85,8 @@ def variants(policy_type: str, sets: list[str]) -> list[dict]:
 def name(over: dict) -> str:
     if "guide_path" in over:
         return f"guide{over['guide_every']}_{over['num_inference_steps']}_w{over['warm_start']}"
-    return "_".join(f"{k[0]}{v}" if k == "warm_start" else f"{v}" for k, v in over.items()) or "default"
+    prefix = {"warm_start": "w", "n_action_steps": "a", "noise_scale": "n"}
+    return "_".join(f"{prefix.get(k, '')}{v}" for k, v in over.items()) or "default"
 
 
 @torch.no_grad()
@@ -137,6 +155,7 @@ def main():
     p.add_argument("--hybrid", action="store_true", help="only the flow HYBRID sampler variants")
     p.add_argument("--guided", action="store_true", help="only the diffusion-guided flow variants (GUIDED)")
     p.add_argument("--combo", action="store_true", help="only the COMBO variants (fixes stacked on reflow)")
+    p.add_argument("--explore", action="store_true", help="only the EXPLORE variants (knobs stacked on shortcut/reflow)")
     p.add_argument("--guide-run", default=None, help="guide run name, {seed} filled in (default: flow -> diffusion)")
     a = p.parse_args()
 
@@ -146,13 +165,17 @@ def main():
     for run in a.runs:
         ckpt = run / "checkpoints/last/pretrained_model"
         ptype = json.loads((ckpt / "config.json").read_text())["type"]
-        sets = [n for n in ("hybrid", "guided", "combo") if getattr(a, n)]
+        sets = [n for n in ("hybrid", "guided", "combo", "explore") if getattr(a, n)]
         for over in variants(ptype, sets):
             if "guide_path" in over:
                 seed = run.name.split("_s")[1].split("_")[0]
                 guide = a.guide_run.format(seed=seed) if a.guide_run else run.name.replace("flow", "diffusion", 1)
                 over = {**over, "guide_path": GUIDE.format(run=guide)}
-            m = run_eval(ckpt, over, a.out / run.name / name(over), a)
+            try:
+                m = run_eval(ckpt, over, a.out / run.name / name(over), a)
+            except subprocess.CalledProcessError as e:  # e.g. OOM on a shared GPU: skip, rerun later
+                print(f"FAILED {run.name} {name(over)}: {e}", flush=True)
+                continue
             rows.append({
                 "run": run.name, "policy": ptype, "variant": name(over),
                 "pc_success": m["pc_success"], "avg_max_reward": m["avg_max_reward"],

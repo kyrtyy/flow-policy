@@ -58,6 +58,7 @@ class FlowModel(DiffusionModel):
                 device=device,
                 generator=generator,
             )
+            * self.config.noise_scale
         )
         cfg = self.config
         ts = cfg.step_schedule or [i / self.num_inference_steps for i in range(self.num_inference_steps + 1)]

@@ -20,6 +20,8 @@ class FlowConfig(DiffusionConfig):
     # > 0: start each chunk at t=warm_start from the previous chunk's plan (shifted by n_action_steps)
     # mixed with noise, instead of from pure noise at t=0, so the policy keeps its earlier decision.
     warm_start: float = 0.0
+    # Scale of the initial noise (sampling temperature); < 1 pulls few-step samples toward the mean action.
+    noise_scale: float = 1.0
     # Reflow distillation: train on (noise, teacher's multi-step sample from that noise) pairs instead of
     # (noise, demo action), so paths are straight and one Euler step lands on a single mode.
     # Training distribution of t: "uniform", "logit_normal" (SD3: mass in the middle) or "beta" (pi0:
