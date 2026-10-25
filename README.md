@@ -2,7 +2,7 @@
 
 Diffusion Policy with the DDPM objective replaced by flow matching, built as a [LeRobot](https://github.com/huggingface/lerobot) 0.6.1 plugin and evaluated on PushT. The goal is Diffusion Policy's accuracy at 1–4 network passes per action chunk instead of 100, which means far lower latency.
 
-![Diffusion 1 step vs Diffusion 100 steps vs Flow 1 step](results/demo/demo.gif)
+![Diffusion 1 step vs Diffusion 100 steps vs Shortcut flow 1 step, same 4 PushT episodes (unselected)](results/demo/demo.gif)
 
 ## Results (full-size models, PushT)
 

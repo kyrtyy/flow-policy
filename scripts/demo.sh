@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Side-by-side demo video: Diffusion 1 step | Diffusion 100 steps | Flow 1 step, same PushT seeds.
 # scripts/demo.sh <diffusion_ckpt> <flow_ckpt> [episodes] [device]
+# Existing results/demo/<name>/videos are reused (e.g. copied from an eval_sweep run), so no re-eval.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 DIFF=$1; FLOW=$2; N=${3:-4}; DEV=${4:-mps}; OUT=results/demo
@@ -17,7 +18,7 @@ ev flow1 "$FLOW" --policy.num_inference_steps=1
 python - "$OUT" <<'EOF'
 import sys
 from PIL import Image, ImageDraw, ImageFont
-for name, text in [("diff1", "Diffusion | 1 step"), ("diff100", "Diffusion | 100 steps"), ("flow1", "Flow (ours) | 1 step")]:
+for name, text in [("diff1", "Diffusion | 1 step | 6 ms"), ("diff100", "Diffusion | 100 steps | 383 ms"), ("flow1", "Shortcut flow | 1 step | 6 ms")]:
     im = Image.new("RGB", (384, 40), (20, 33, 61))
     try:
         font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 22)
