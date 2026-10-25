@@ -21,78 +21,45 @@ Three training seeds, 50 evaluation episodes each (eval seed 100000, same initia
 - **At 1 pass the comparison is closer than it first looked.** Standard Diffusion's 0% is an artifact of ε-prediction: an x0-prediction Diffusion model gets 50.7% at 1 pass. Shortcut (55.3%) leads it by less than the noise level, so "Flow beats Diffusion at 1 pass" is not established.
 - x0-prediction Diffusion gets *worse* with more steps (42% at 100). At 1–2 steps it is good; at many steps it is the weakest variant.
 
-### All full-size variants
+### Main results
 
-| Method | Passes | Success % | Coverage |
+| Method | Passes | Success % | Latency per chunk |
 |---|---|---|---|
-| Diffusion, DDPM / DDIM (ε) | 100 | 60.7 ± 2.3 / 58.0 ± 8.7 | 0.922 / 0.945 |
-| Diffusion, DDPM / DDIM (ε) | 1 | 0.0 / 0.0 | 0.156 |
-| Diffusion, DDPM / DDIM (x0) | 1 | 40.7 ± 6.4 / 50.7 ± 4.2 | 0.908 / 0.881 |
-| Flow | 1 | 41.3 ± 4.2 | 0.903 |
-| Flow + 40k extra steps (control for shortcut) | 1 | 47.3 ± 2.3 | 0.924 |
-| Shortcut (Flow + step-size conditioning, 40k fine-tune) | 1 | 55.3 ± 5.0 | 0.917 |
-| Shortcut | 2 / 4 / 10 | 50.7 / 48.7 / 66.0 | 0.91–0.94 |
-| Reflow (distilled from Flow, 10-step teacher, 20k) | 1 / 2 / 4 | 47.3 / 57.3 / 55.3 | 0.90–0.94 |
-| Shortcut 1-pass + Diffusion plan every 4th chunk | mixed | **66.7 ± 3.1** | 0.948 |
-| Reflow 1-pass + Diffusion plan every 4th chunk | mixed | 61.3 ± 1.2 | 0.941 |
-| Flow 1-pass + Diffusion plan every 4th chunk | mixed | 60.7 ± 8.1 | 0.952 |
-| ACT | 1 | 26.7 ± 6.1 | 0.710 |
-| BC-MLP | 1 | 26.0 ± 10.6 | 0.69 |
+| Diffusion Policy (baseline, ε-prediction, DDPM) | 100 | 60.7 ± 2.3 | ~830 ms |
+| Diffusion Policy (x0-prediction, DDIM) | 1 | 50.7 ± 4.2 | ~13 ms |
+| Flow | 1 | 41.3 ± 4.2 | ~13 ms |
+| Reflow (Flow distilled from its own 10-step samples) | 2 | **57.3 ± 3.1** | ~21 ms |
+| Shortcut (Flow + step-size conditioning) | 1 | **55.3 ± 5.0** | ~12 ms |
+| Shortcut 1-pass + Diffusion plan every 4th chunk | mixed | **66.7 ± 3.1** | ~215 ms avg |
+| ACT | 1 | 26.7 ± 6.1 | ~3 ms |
+| BC-MLP | 1 | 26.0 ± 10.6 | ~2 ms |
 
-Reproduction check: LeRobot's published `diffusion_pusht` reports 65.4% success and 0.955 coverage over 500 episodes. Our Diffusion baseline gets 60.7% and 0.922.
+- **Reproduction check:** LeRobot's published `diffusion_pusht` reports 65.4% over 500 episodes; our baseline gets 60.7%.
+- **Shortcut control:** plain Flow trained the same 40k extra steps gets 47.3% at 1 pass, so the shortcut objective itself adds about 8 points.
+- **Best overall:** shortcut with one 100-step Diffusion plan every 4th chunk (66.7%) beats 100-pass Diffusion at about a quarter of the average latency.
 
-Shortcut vs. its control: training plain Flow for the same 40k extra steps gives 47.3% at 1 pass. So the shortcut objective adds about 8 points at 1 pass (55.3%), and the extra training adds about 6 points. At 2–4 passes shortcut is no better than the control (50.7 / 48.7 vs 50.7 / 53.3).
+### Tried, did not help
 
-The Diffusion-guided hybrids cost a 100-step Diffusion pass on every 4th chunk: about 215 ms per chunk on average, and about 830 ms on the guided chunk.
+- Uneven step schedules, warm-starting from the previous plan, lower noise temperature: no gain.
+- Replanning more often (every 4 actions instead of 8): about −20 points. Committing longer (12 actions) also hurts.
+- Logit-normal or Beta t-sampling during training: no gain; logit-normal collapses 1-pass success to 3%.
 
-### Inference-time combinations (no retraining)
-
-Tested on reflow and shortcut at 1 pass (3 seeds unless noted). `n_action_steps` = how many actions are executed before replanning (default 8). Noise temperature scales the initial noise.
-
-| Combination | Reflow | Shortcut |
-|---|---|---|
-| Default (8 actions, temperature 1) | 47.3 | 55.3 |
-| Temperature 0.8 | 49.3 | 56.7 |
-| Temperature 0.5 | 46.7 | 45.3 |
-| Replan every 4 actions | 28.7 | 38.0 |
-| Replan every 4 + warm start 0.3 | 26.0 | 35.3 |
-| Replan every 4 + temperature 0.5 | 16.7 | 26.7 |
-| Commit to 12 actions | 34.0 | 42.7 |
-| Commit to 12 + temperature 0.8 | 40.7 | 49.3 |
-| 2 passes, replan every 4 | 24.0 | 32.0 |
-| 2 passes, commit to 12 | 50.0 | 46.7 |
-| Diffusion plan every 4th chunk | **61.3** | **66.7** |
-
-- The default of 8 actions per chunk is clearly best. Replanning more often costs 17–20 points, likely because the policy switches strategy between chunks. Committing longer also hurts.
-- Noise temperature 0.8 is within noise of the default; 0.5 hurts.
-- The only combination that helps is the occasional Diffusion plan.
-
-### Other things that did not help
-
-Full tables are in [`results/RESULTS.md`](results/RESULTS.md).
-
-- Uneven step schedules such as `[0, 0.1, 1]`, and warm-starting from the previous plan: about 50–52% at 1–2 passes.
-- Logit-normal t-sampling (small model): 1-pass success fell to 2.7%. It barely trains near t=0, which is where a 1-pass sampler starts.
-- π0-style Beta t-sampling (small model): 40.7% at 1 pass vs 43.3% for uniform.
-- Combining reflow with warm start or a step schedule: no gain over reflow alone.
-
-At full size, most 1-pass failures are near misses (final coverage ≥ 0.85), not wrong strategy.
+All runs, including these, are in [`results/RESULTS.md`](results/RESULTS.md).
 
 ### Open
 
 - Final evaluation at 200 episodes per seed, with latency measured on an idle GPU, to shrink the ±5-point noise.
-- Why shortcut is worse at 2–4 passes than at 1 pass.
 
 ## Layout
 
 ```
 src/lerobot_policy_flowpolicy/
   flow/     FlowConfig / FlowPolicy: flow matching on the Diffusion Policy U-Net, plus reflow,
-            shortcut, warm start, step schedules, t-sampling and the Diffusion guide
+            shortcut, warm start, step schedules, t-sampling, noise temperature and the Diffusion guide
   bcmlp/    MLP behaviour-cloning baseline
 scripts/
   train.sh        train one policy (diffusion | flow | bcmlp | act)
-  eval_sweep.py   success vs. passes plus latency; --hybrid / --guided / --combo variants
+  eval_sweep.py   success vs. passes plus latency; --hybrid / --guided / --combo / --explore variants
   aggregate.py    mean ± std over seeds from results.csv
   breakdown.py    success, coverage, gross vs near-miss failures, pooled from eval_info.json
   demo.sh         side-by-side demo video
