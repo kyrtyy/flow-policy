@@ -110,6 +110,9 @@ def latency_ms(ckpt: Path, over: dict, device: str, iters: int = 50) -> float:
         sync()
         if i >= 10:  # warmup
             times.append((time.perf_counter() - t0) * 1e3)
+    del policy
+    if device == "cuda":
+        torch.cuda.empty_cache()  # else the cache starves the next lerobot-eval subprocess on this GPU
     return statistics.median(times)
 
 
