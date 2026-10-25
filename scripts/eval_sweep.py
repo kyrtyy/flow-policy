@@ -69,6 +69,15 @@ EXPLORE = [
 ]
 
 
+# Flow transports, Diffusion polishes: 1 flow pass, then the last k Diffusion steps (DDPM or DDIM) on the
+# re-noised plan. Total passes = 1 + k, so judge against the plain samplers at the same pass count.
+REFINE = [
+    {"num_inference_steps": 1, "refine_path": GUIDE, "refine_steps": k, "refine_scheduler": s}
+    for s in ("DDPM", "DDIM")
+    for k in (1, 2, 3, 5)
+]
+
+
 def variants(policy_type: str, sets: list[str]) -> list[dict]:
     """Config overrides to evaluate for each policy type. `sets` picks HYBRID/GUIDED/COMBO instead of the default."""
     if sets:
@@ -85,6 +94,8 @@ def variants(policy_type: str, sets: list[str]) -> list[dict]:
 def name(over: dict) -> str:
     if "guide_path" in over:
         return f"guide{over['guide_every']}_{over['num_inference_steps']}_w{over['warm_start']}"
+    if "refine_path" in over:
+        return f"{over['num_inference_steps']}+{over['refine_scheduler']}{over['refine_steps']}"
     prefix = {"warm_start": "w", "n_action_steps": "a", "noise_scale": "n"}
     return "_".join(f"{prefix.get(k, '')}{v}" for k, v in over.items()) or "default"
 
@@ -159,6 +170,7 @@ def main():
     p.add_argument("--guided", action="store_true", help="only the diffusion-guided flow variants (GUIDED)")
     p.add_argument("--combo", action="store_true", help="only the COMBO variants (fixes stacked on reflow)")
     p.add_argument("--explore", action="store_true", help="only the EXPLORE variants (knobs stacked on shortcut/reflow)")
+    p.add_argument("--refine", action="store_true", help="only the REFINE variants (flow, then last k diffusion steps)")
     p.add_argument("--guide-run", default=None, help="guide run name, {seed} filled in (default: flow -> diffusion)")
     a = p.parse_args()
 
@@ -168,12 +180,13 @@ def main():
     for run in a.runs:
         ckpt = run / "checkpoints/last/pretrained_model"
         ptype = json.loads((ckpt / "config.json").read_text())["type"]
-        sets = [n for n in ("hybrid", "guided", "combo", "explore") if getattr(a, n)]
+        sets = [n for n in ("hybrid", "guided", "combo", "explore", "refine") if getattr(a, n)]
         for over in variants(ptype, sets):
-            if "guide_path" in over:
-                seed = run.name.split("_s")[1].split("_")[0]
-                guide = a.guide_run.format(seed=seed) if a.guide_run else run.name.replace("flow", "diffusion", 1)
-                over = {**over, "guide_path": GUIDE.format(run=guide)}
+            for key in ("guide_path", "refine_path"):
+                if key in over:
+                    seed = run.name.split("_s")[1].split("_")[0]
+                    guide = a.guide_run.format(seed=seed) if a.guide_run else run.name.replace("flow", "diffusion", 1)
+                    over = {**over, key: GUIDE.format(run=guide)}
             try:
                 m = run_eval(ckpt, over, a.out / run.name / name(over), a)
             except subprocess.CalledProcessError as e:  # e.g. OOM on a shared GPU: skip, rerun later

@@ -139,6 +139,26 @@ def test_guide_decides_every_n_chunks_and_flow_continues_its_plan(tmp_path):
     torch.testing.assert_close(out[2], plan[:, 1:9])  # chunk 2: diffusion again
 
 
+def test_refine_lands_on_diffusion_prediction(tmp_path):
+    from lerobot.policies.diffusion.configuration_diffusion import DiffusionConfig
+    from lerobot.policies.diffusion.modeling_diffusion import DiffusionPolicy
+
+    DiffusionPolicy(tiny(DiffusionConfig)).save_pretrained(tmp_path)
+    cfg = tiny(FlowConfig, refine_path=str(tmp_path), refine_steps=3, refine_scheduler="DDIM", num_inference_steps=1)
+    model = FlowPolicy(cfg).diffusion
+    b = batch(cfg=cfg)
+    b["observation.images"] = b[IMG].unsqueeze(2)
+    model.generate_actions(b)  # loads the refiner
+    g, sched = model._refiner
+    a = sched.alphas_cumprod
+    target = torch.full((4, cfg.horizon, 2), 0.3)
+    del g.unet  # oracle diffusion: its eps always points at `target`
+    g.unet = lambda x, t, global_cond: (x - a[t[0]] ** 0.5 * target) / (1 - a[t[0]]) ** 0.5
+    model._unet = lambda x, t, global_cond, d=None: torch.zeros_like(x)  # flow leaves pure noise
+    out = model.generate_actions(b)
+    torch.testing.assert_close(out, target[:, 1:9])
+
+
 @pytest.mark.parametrize("kind,lo,hi", [("uniform", 0.45, 0.55), ("logit_normal", 0.45, 0.55), ("beta", 0.35, 0.45)])
 def test_t_sampling_range_and_mean(kind, lo, hi):
     # beta: E[t] = 0.999 * (1 - 1.5 / 2.5) = 0.40, i.e. skewed toward the noisy end t = 0.

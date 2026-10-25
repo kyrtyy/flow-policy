@@ -74,6 +74,8 @@ class FlowModel(DiffusionModel):
             t = t0.expand(x.shape[0])
             x = x + (t1 - t0) * self._unet(x, t, global_cond, d=(t1 - t0).expand(x.shape[0]))
         # Actions are MIN_MAX-normalised to [-1, 1]; Diffusion Policy clips to the same range.
+        if cfg.refine_steps:
+            x = self._refine(x)
         x = x.clamp(-1, 1) if cfg.clip_sample else x
         self._prev_plan = x
         return x
@@ -122,8 +124,27 @@ class FlowModel(DiffusionModel):
         return nn.functional.mse_loss(pred, target)
 
 
+    def _refine(self, x: Tensor) -> Tensor:
+        g, sched = self._refiner
+        sched.set_timesteps(g.config.num_train_timesteps)  # full schedule, so the last k steps are k-1 ... 0
+        ts = sched.timesteps[-self.config.refine_steps :]
+        x = sched.add_noise(x, torch.randn_like(x), ts[:1].expand(x.shape[0]))
+        for t in ts:
+            eps = g.unet(x, torch.full(x.shape[:1], t, dtype=torch.long, device=x.device), global_cond=self._refine_cond)
+            x = sched.step(eps, t, x).prev_sample
+        return x
+
     def generate_actions(self, batch: dict[str, Tensor], noise: Tensor | None = None) -> Tensor:
         cfg = self.config
+        if cfg.refine_steps:
+            if getattr(self, "_refiner", None) is None:
+                from diffusers import DDIMScheduler, DDPMScheduler
+                from lerobot.policies.diffusion.modeling_diffusion import DiffusionPolicy
+
+                g = DiffusionPolicy.from_pretrained(cfg.refine_path).diffusion.to(get_device_from_parameters(self)).eval()
+                sched = {"DDPM": DDPMScheduler, "DDIM": DDIMScheduler}[cfg.refine_scheduler]
+                self.__dict__["_refiner"] = (g, sched.from_config(g.noise_scheduler.config))  # not a submodule
+            self._refine_cond = self._refiner[0]._prepare_global_conditioning(batch)
         k = getattr(self, "_chunk", 0)
         self._chunk = k + 1
         if not cfg.guide_path or (k % cfg.guide_every if cfg.guide_every else k):

@@ -42,3 +42,9 @@ class FlowConfig(DiffusionConfig):
     guide_path: str | None = None
     guide_every: int = 0
     guide_steps: int = 100
+    # Diffusion polish: re-noise the flow plan to step refine_steps-1 of this Diffusion Policy checkpoint and
+    # denoise the last refine_steps steps with it, so diffusion fixes the fine detail flow gets slightly wrong
+    # (SDEdit). refine_scheduler: "DDPM" (stochastic) or "DDIM". 0 = off.
+    refine_path: str | None = None
+    refine_steps: int = 0
+    refine_scheduler: str = "DDPM"
