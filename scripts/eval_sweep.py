@@ -8,6 +8,7 @@ Finished variants (eval_info.json exists) are skipped, so the sweep can be kille
 
 import argparse
 import csv
+import gc
 import json
 import statistics
 import subprocess
@@ -134,6 +135,7 @@ def latency_ms(ckpt: Path, over: dict, device: str, iters: int = 50) -> float:
         if i >= 10:  # warmup
             times.append((time.perf_counter() - t0) * 1e3)
     del policy
+    gc.collect()  # the shortcut hook's closure makes a reference cycle, so del alone doesn't free the model
     if device == "cuda":
         torch.cuda.empty_cache()  # else the cache starves the next lerobot-eval subprocess on this GPU
     return statistics.median(times)
