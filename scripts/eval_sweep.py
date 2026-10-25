@@ -78,6 +78,17 @@ REFINE = [
 ]
 
 
+# Sample-and-select (BID): N candidates in one batch, keep the one that continues the previous plan (or the
+# medoid). Coherence should stop mode switching, so also retry replanning every 4 actions with it.
+SELECT = [
+    {"num_inference_steps": 1, "n_candidates": n, "select": s} for s in ("coherence", "medoid") for n in (8, 32)
+] + [
+    {"num_inference_steps": 1, "n_candidates": 32, "select": "coherence", "n_action_steps": 4},
+    {**REFINE[5], "n_candidates": 32, "select": "coherence"},  # + 2 DDIM polish steps on the chosen plan
+    {**REFINE[5], "n_candidates": 32, "select": "medoid"},
+]
+
+
 def variants(policy_type: str, sets: list[str]) -> list[dict]:
     """Config overrides to evaluate for each policy type. `sets` picks HYBRID/GUIDED/COMBO instead of the default."""
     if sets:
@@ -94,10 +105,11 @@ def variants(policy_type: str, sets: list[str]) -> list[dict]:
 def name(over: dict) -> str:
     if "guide_path" in over:
         return f"guide{over['guide_every']}_{over['num_inference_steps']}_w{over['warm_start']}"
-    if "refine_path" in over:
-        return f"{over['num_inference_steps']}+{over['refine_scheduler']}{over['refine_steps']}"
-    prefix = {"warm_start": "w", "n_action_steps": "a", "noise_scale": "n"}
-    return "_".join(f"{prefix.get(k, '')}{v}" for k, v in over.items()) or "default"
+    over, head = dict(over), []
+    if over.pop("refine_path", None):
+        head = [f"{over.pop('num_inference_steps')}+{over.pop('refine_scheduler')}{over.pop('refine_steps')}"]
+    prefix = {"warm_start": "w", "n_action_steps": "a", "noise_scale": "n", "n_candidates": "c"}
+    return "_".join(head + [f"{prefix.get(k, '')}{v}" for k, v in over.items()]) or "default"
 
 
 @torch.no_grad()
@@ -170,6 +182,7 @@ def main():
     p.add_argument("--guided", action="store_true", help="only the diffusion-guided flow variants (GUIDED)")
     p.add_argument("--combo", action="store_true", help="only the COMBO variants (fixes stacked on reflow)")
     p.add_argument("--explore", action="store_true", help="only the EXPLORE variants (knobs stacked on shortcut/reflow)")
+    p.add_argument("--select", action="store_true", help="only the SELECT variants (N candidates, keep one)")
     p.add_argument("--refine", action="store_true", help="only the REFINE variants (flow, then last k diffusion steps)")
     p.add_argument("--guide-run", default=None, help="guide run name, {seed} filled in (default: flow -> diffusion)")
     a = p.parse_args()
@@ -180,7 +193,7 @@ def main():
     for run in a.runs:
         ckpt = run / "checkpoints/last/pretrained_model"
         ptype = json.loads((ckpt / "config.json").read_text())["type"]
-        sets = [n for n in ("hybrid", "guided", "combo", "explore", "refine") if getattr(a, n)]
+        sets = [n for n in ("hybrid", "guided", "combo", "explore", "refine", "select") if getattr(a, n)]
         for over in variants(ptype, sets):
             for key in ("guide_path", "refine_path"):
                 if key in over:

@@ -48,3 +48,9 @@ class FlowConfig(DiffusionConfig):
     refine_path: str | None = None
     refine_steps: int = 0
     refine_scheduler: str = "DDPM"
+    # Sample-and-select (Bidirectional Decoding, Liu et al. 2024): draw n_candidates plans in one batch and keep
+    # one. "coherence": closest to the still-unexecuted part of the previous plan (no mode switching between
+    # chunks; the first chunk of an episode falls back to medoid). "medoid": closest to the other candidates
+    # (the majority mode).
+    n_candidates: int = 1
+    select: str = "coherence"

@@ -159,6 +159,15 @@ def test_refine_lands_on_diffusion_prediction(tmp_path):
     torch.testing.assert_close(out, target[:, 1:9])
 
 
+def test_select_keeps_the_candidate_that_continues_the_previous_plan():
+    cfg = tiny(FlowConfig, n_candidates=3)
+    model = FlowPolicy(cfg).diffusion
+    c = torch.stack([torch.full((cfg.horizon, 2), v) for v in (-0.5, 0.0, 0.9)])[None].repeat(2, 1, 1, 1)
+    torch.testing.assert_close(model._select(c), c[:, 1])  # first chunk: medoid
+    model._prev_plan = torch.full((2, cfg.horizon, 2), 0.8)
+    torch.testing.assert_close(model._select(c), c[:, 2])  # then: closest to the previous plan
+
+
 @pytest.mark.parametrize("kind,lo,hi", [("uniform", 0.45, 0.55), ("logit_normal", 0.45, 0.55), ("beta", 0.35, 0.45)])
 def test_t_sampling_range_and_mean(kind, lo, hi):
     # beta: E[t] = 0.999 * (1 - 1.5 / 2.5) = 0.40, i.e. skewed toward the noisy end t = 0.

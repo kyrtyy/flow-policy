@@ -47,6 +47,9 @@ class FlowModel(DiffusionModel):
         generator: torch.Generator | None = None,
         noise: Tensor | None = None,
     ) -> Tensor:
+        n = self.config.n_candidates
+        if n > 1 and noise is None:
+            batch_size, global_cond = batch_size * n, global_cond.repeat_interleave(n, 0)
         device = get_device_from_parameters(self)
         dtype = get_dtype_from_parameters(self)
         x = (
@@ -74,6 +77,8 @@ class FlowModel(DiffusionModel):
             t = t0.expand(x.shape[0])
             x = x + (t1 - t0) * self._unet(x, t, global_cond, d=(t1 - t0).expand(x.shape[0]))
         # Actions are MIN_MAX-normalised to [-1, 1]; Diffusion Policy clips to the same range.
+        if n > 1 and noise is None:
+            x = self._select(x.unflatten(0, (-1, n)))
         if cfg.refine_steps:
             x = self._refine(x)
         x = x.clamp(-1, 1) if cfg.clip_sample else x
@@ -123,6 +128,17 @@ class FlowModel(DiffusionModel):
         pred = self._unet(xt, t, global_cond, d=2 * d)
         return nn.functional.mse_loss(pred, target)
 
+
+    def _select(self, c: Tensor) -> Tensor:
+        """c: (B, N, horizon, action_dim) candidates -> (B, horizon, action_dim)."""
+        k = self.config.n_action_steps
+        prev = getattr(self, "_prev_plan", None)
+        if self.config.select == "coherence" and prev is not None and prev.shape[0] == c.shape[0]:
+            # The previous plan was made k steps ago: its tail overlaps the head of each candidate.
+            score = (c[:, :, : -k] - prev[:, None, k:]).square().sum((2, 3))
+        else:
+            score = torch.cdist(c.flatten(2), c.flatten(2)).sum(2)
+        return c[torch.arange(c.shape[0]), score.argmin(1)]
 
     def _refine(self, x: Tensor) -> Tensor:
         g, sched = self._refiner
