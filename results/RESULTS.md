@@ -1,9 +1,83 @@
-# Results (PushT, full-size models, 50 episodes per training seed, eval seed 100000)
+# Results (PushT, full-size models, eval seed 100000)
 
-Pooled over training seeds from each run's `eval_info.json` with `python scripts/breakdown.py results/<dir> ...`. Failures split by final coverage: gross (< 0.6) vs near miss (>= 0.85). `diffx0` = Diffusion with x0 ("sample") prediction. `flowcont` = Flow trained 40k extra steps (control for shortcut). `guide4_1_w0.5` = 1-pass shortcut with a 100-step Diffusion plan every 4th chunk.
+Pooled over training seeds from each run's `eval_info.json` with `python scripts/breakdown.py results/<dir> ...`. Failures split by final coverage: gross (< 0.6) vs near miss (>= 0.85).
+
+- `final`, `final_guided`, `refine200`, `select`: 200 episodes per seed. The other directories: 50 episodes per seed.
+- `diffx0` = Diffusion with x0 ("sample") prediction. `flowcont` = Flow trained 40k extra steps (control for shortcut).
+- `guideN_1_w0.5` = 1-pass shortcut with a 100-step Diffusion plan every Nth chunk (0 = first chunk only).
+- `1+DDIMk` / `1+DDPMk` = 1 flow pass, then the last k Diffusion steps on the re-noised plan.
+- `cN_coherence` / `cN_medoid` = N candidate plans, keep the one closest to the previous plan / to the other candidates. `a4` = replan every 4 actions.
 
 | results | policy | variant | seeds | success % | coverage | fails | gross <0.6 | near >=0.85 |
 |---|---|---|---|---|---|---|---|---|
+| final | diffusion | DDIM_1 | 3 | 0.0 ± 0.0 | 0.109 | 600 | 596 | 0 |
+| final | diffusion | DDIM_10 | 3 | 63.0 ± 5.9 | 0.951 | 222 | 23 | 158 |
+| final | diffusion | DDIM_100 | 3 | 62.8 ± 5.5 | 0.953 | 223 | 22 | 163 |
+| final | diffusion | DDIM_2 | 3 | 44.5 ± 2.0 | 0.918 | 333 | 46 | 248 |
+| final | diffusion | DDIM_4 | 3 | 61.7 ± 1.4 | 0.950 | 230 | 30 | 175 |
+| final | diffusion | DDPM_1 | 3 | 0.0 ± 0.0 | 0.108 | 600 | 595 | 0 |
+| final | diffusion | DDPM_10 | 3 | 61.5 ± 2.6 | 0.951 | 231 | 20 | 169 |
+| final | diffusion | DDPM_100 | 3 | 67.8 ± 4.3 | 0.952 | 193 | 20 | 126 |
+| final | diffusion | DDPM_2 | 3 | 48.7 ± 9.8 | 0.917 | 308 | 38 | 211 |
+| final | diffusion | DDPM_4 | 3 | 57.3 ± 6.0 | 0.945 | 256 | 24 | 191 |
+| final | diffx0 | DDIM_1 | 3 | 47.2 ± 5.2 | 0.902 | 317 | 55 | 201 |
+| final | diffx0 | DDIM_10 | 3 | 49.7 ± 5.8 | 0.902 | 302 | 52 | 186 |
+| final | diffx0 | DDIM_100 | 3 | 46.0 ± 2.8 | 0.894 | 324 | 58 | 203 |
+| final | diffx0 | DDIM_2 | 3 | 47.2 ± 8.6 | 0.897 | 317 | 63 | 202 |
+| final | diffx0 | DDIM_4 | 3 | 45.7 ± 3.4 | 0.897 | 326 | 66 | 211 |
+| final | diffx0 | DDPM_1 | 3 | 45.0 ± 7.0 | 0.895 | 330 | 62 | 208 |
+| final | diffx0 | DDPM_10 | 3 | 45.7 ± 1.6 | 0.898 | 326 | 53 | 205 |
+| final | diffx0 | DDPM_100 | 3 | 47.5 ± 2.2 | 0.910 | 315 | 51 | 221 |
+| final | diffx0 | DDPM_2 | 3 | 45.3 ± 4.0 | 0.899 | 328 | 59 | 209 |
+| final | diffx0 | DDPM_4 | 3 | 46.3 ± 3.6 | 0.908 | 322 | 52 | 215 |
+| final | flow | 1 | 3 | 51.7 ± 2.5 | 0.927 | 290 | 40 | 215 |
+| final | flow | 10 | 3 | 62.5 ± 3.6 | 0.946 | 225 | 29 | 162 |
+| final | flow | 100 | 3 | 68.8 ± 2.6 | 0.957 | 187 | 20 | 135 |
+| final | flow | 2 | 3 | 56.0 ± 4.8 | 0.940 | 264 | 37 | 205 |
+| final | flow | 4 | 3 | 60.8 ± 3.5 | 0.945 | 235 | 27 | 177 |
+| final | reflow | 1 | 3 | 49.5 ± 0.5 | 0.920 | 303 | 46 | 224 |
+| final | reflow | 10 | 3 | 61.5 ± 6.0 | 0.941 | 231 | 32 | 167 |
+| final | reflow | 100 | 3 | 67.7 ± 2.9 | 0.948 | 194 | 26 | 135 |
+| final | reflow | 2 | 3 | 53.8 ± 7.7 | 0.937 | 277 | 32 | 210 |
+| final | reflow | 4 | 3 | 60.5 ± 1.8 | 0.933 | 237 | 35 | 168 |
+| final | shortcut | 1 | 3 | 55.0 ± 1.3 | 0.918 | 270 | 50 | 194 |
+| final | shortcut | 10 | 3 | 63.5 ± 4.8 | 0.951 | 219 | 25 | 167 |
+| final | shortcut | 100 | 3 | 69.2 ± 1.8 | 0.944 | 185 | 31 | 120 |
+| final | shortcut | 2 | 3 | 57.2 ± 5.5 | 0.929 | 257 | 44 | 186 |
+| final | shortcut | 4 | 3 | 61.2 ± 3.8 | 0.941 | 233 | 32 | 169 |
+| final_guided | shortcut | guide0_1_w0.5 | 3 | 55.5 ± 3.8 | 0.942 | 267 | 35 | 207 |
+| final_guided | shortcut | guide2_1_w0.5 | 3 | 68.7 ± 2.3 | 0.956 | 188 | 21 | 134 |
+| final_guided | shortcut | guide4_1_w0.5 | 3 | 65.7 ± 1.3 | 0.964 | 206 | 15 | 168 |
+| refine200 | flow | 1+DDIM1 | 3 | 61.7 ± 3.8 | 0.936 | 230 | 39 | 158 |
+| refine200 | flow | 1+DDIM2 | 3 | 65.3 ± 2.6 | 0.947 | 208 | 31 | 152 |
+| refine200 | flow | 1+DDIM3 | 3 | 66.3 ± 1.4 | 0.949 | 202 | 26 | 144 |
+| refine200 | flow | 1+DDIM5 | 3 | 65.2 ± 4.3 | 0.949 | 209 | 24 | 146 |
+| refine200 | flow | 1+DDPM1 | 3 | 63.2 ± 0.6 | 0.948 | 221 | 25 | 160 |
+| refine200 | flow | 1+DDPM2 | 3 | 59.8 ± 2.0 | 0.946 | 241 | 27 | 178 |
+| refine200 | flow | 1+DDPM3 | 3 | 64.2 ± 2.8 | 0.945 | 215 | 24 | 151 |
+| refine200 | flow | 1+DDPM5 | 3 | 66.3 ± 2.9 | 0.952 | 202 | 23 | 144 |
+| refine200 | shortcut | 1+DDIM1 | 3 | 63.3 ± 1.5 | 0.936 | 220 | 35 | 153 |
+| refine200 | shortcut | 1+DDIM2 | 3 | 62.8 ± 5.8 | 0.944 | 223 | 33 | 159 |
+| refine200 | shortcut | 1+DDIM3 | 3 | 65.7 ± 3.5 | 0.951 | 206 | 23 | 148 |
+| refine200 | shortcut | 1+DDIM5 | 3 | 64.3 ± 2.5 | 0.952 | 214 | 20 | 154 |
+| refine200 | shortcut | 1+DDPM1 | 3 | 62.3 ± 2.0 | 0.938 | 226 | 39 | 163 |
+| refine200 | shortcut | 1+DDPM2 | 3 | 67.5 ± 7.9 | 0.953 | 195 | 27 | 140 |
+| refine200 | shortcut | 1+DDPM3 | 3 | 65.3 ± 4.7 | 0.952 | 208 | 25 | 150 |
+| refine200 | shortcut | 1+DDPM5 | 3 | 68.2 ± 3.8 | 0.949 | 191 | 26 | 130 |
+| select | flow | 1+DDIM2_c32_coherence | 3 | 61.0 ± 2.3 | 0.943 | 234 | 28 | 175 |
+| select | flow | 1+DDIM2_c32_medoid | 3 | 61.7 ± 3.8 | 0.942 | 230 | 32 | 164 |
+| select | flow | 1_c32_coherence | 3 | 57.2 ± 6.0 | 0.926 | 257 | 43 | 184 |
+| select | flow | 1_c32_coherence_a4 | 3 | 40.8 ± 1.0 | 0.923 | 355 | 33 | 277 |
+| select | flow | 1_c32_medoid | 3 | 55.5 ± 3.3 | 0.930 | 267 | 38 | 202 |
+| select | flow | 1_c8_coherence | 3 | 51.8 ± 2.3 | 0.917 | 289 | 43 | 205 |
+| select | flow | 1_c8_medoid | 3 | 51.7 ± 1.8 | 0.937 | 290 | 31 | 226 |
+| select | shortcut | 1+DDIM2_c32_coherence | 3 | 64.8 ± 3.8 | 0.942 | 211 | 32 | 145 |
+| select | shortcut | 1+DDIM2_c32_medoid | 3 | 64.8 ± 3.6 | 0.946 | 211 | 25 | 152 |
+| select | shortcut | 1_c32_coherence | 3 | 53.5 ± 1.5 | 0.914 | 279 | 53 | 195 |
+| select | shortcut | 1_c32_coherence_a4 | 3 | 43.7 ± 4.2 | 0.930 | 338 | 32 | 276 |
+| select | shortcut | 1_c32_medoid | 3 | 53.2 ± 1.5 | 0.910 | 281 | 56 | 196 |
+| select | shortcut | 1_c8_coherence | 3 | 53.8 ± 2.0 | 0.913 | 277 | 52 | 194 |
+| select | shortcut | 1_c8_medoid | 3 | 57.2 ± 2.3 | 0.929 | 257 | 41 | 187 |
 | full | act | default | 3 | 26.7 ± 6.1 | 0.710 | 110 | 56 | 45 |
 | full | bcmlp | default | 1 | 38.0 ± 0.0 | 0.770 | 31 | 12 | 16 |
 | full | diffusion | DDIM_1 | 3 | 0.0 ± 0.0 | 0.156 | 150 | 148 | 0 |

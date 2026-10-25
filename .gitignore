@@ -28,3 +28,6 @@ results/explore_shortcut/*
 !results/explore_shortcut/*/
 results/explore_shortcut/*/*
 !results/explore_shortcut/*/guide4_1_w0.5/
+CV.md
+CLUSTER.md
+results/refine/
