@@ -1,6 +1,6 @@
 # All results (PushT, 50 episodes per training seed, eval seed 100000)
 
-Pooled over training seeds from each run's `eval_info.json` with `python scripts/breakdown.py results/<dir> ...`. Failures split by final coverage: gross (< 0.6) vs near miss (>= 0.85). `*_full` and `full` = full-size models (200k steps; reflow 20k and shortcut 40k fine-tunes on top); `fast`, `guided`, `flowln` = small models (40k steps).
+Pooled over training seeds from each run's `eval_info.json` with `python scripts/breakdown.py results/<dir> ...`. Failures split by final coverage: gross (< 0.6) vs near miss (>= 0.85). `*_full` and `full` = full-size models (200k steps; reflow 20k and shortcut 40k fine-tunes on top); `fast`, `guided`, `flowln`, `flowbeta` = small models (40k steps).
 
 | results | policy | variant | seeds | success % | coverage | fails | gross <0.6 | near >=0.85 |
 |---|---|---|---|---|---|---|---|---|
@@ -26,11 +26,11 @@ Pooled over training seeds from each run's `eval_info.json` with `python scripts
 | reflow_full | reflow | 100 | 3 | 55.3 ± 7.0 | 0.918 | 67 | 13 | 44 |
 | reflow_full | reflow | 2 | 3 | 57.3 ± 3.1 | 0.919 | 64 | 11 | 39 |
 | reflow_full | reflow | 4 | 3 | 55.3 ± 3.1 | 0.939 | 67 | 5 | 49 |
-| shortcut_full | shortcut | 1 | 2 | 55.0 ± 7.1 | 0.903 | 45 | 9 | 24 |
-| shortcut_full | shortcut | 10 | 2 | 67.0 ± 4.2 | 0.941 | 33 | 6 | 21 |
-| shortcut_full | shortcut | 100 | 2 | 62.0 ± 5.7 | 0.914 | 38 | 8 | 20 |
-| shortcut_full | shortcut | 2 | 2 | 49.0 ± 1.4 | 0.900 | 51 | 8 | 31 |
-| shortcut_full | shortcut | 4 | 2 | 48.0 ± 2.8 | 0.918 | 52 | 6 | 35 |
+| shortcut_full | shortcut | 1 | 3 | 55.3 ± 5.0 | 0.917 | 67 | 11 | 41 |
+| shortcut_full | shortcut | 10 | 3 | 66.0 ± 3.5 | 0.939 | 51 | 8 | 33 |
+| shortcut_full | shortcut | 100 | 3 | 62.7 ± 4.2 | 0.917 | 56 | 12 | 32 |
+| shortcut_full | shortcut | 2 | 3 | 50.7 ± 3.1 | 0.907 | 74 | 12 | 49 |
+| shortcut_full | shortcut | 4 | 3 | 48.7 ± 2.3 | 0.922 | 77 | 9 | 55 |
 | guided_full | flow | guide0_1_w0.5 | 3 | 50.7 ± 9.0 | 0.913 | 74 | 13 | 52 |
 | guided_full | flow | guide2_1_w0.5 | 3 | 60.0 ± 3.5 | 0.943 | 60 | 6 | 42 |
 | guided_full | flow | guide4_1_w0.5 | 3 | 60.7 ± 8.1 | 0.952 | 59 | 6 | 46 |
@@ -69,3 +69,8 @@ Pooled over training seeds from each run's `eval_info.json` with `python scripts
 | flowln | flowln | 100 | 3 | 38.7 ± 10.1 | 0.913 | 92 | 9 | 65 |
 | flowln | flowln | 2 | 3 | 29.3 ± 9.0 | 0.894 | 106 | 9 | 70 |
 | flowln | flowln | 4 | 3 | 31.3 ± 4.2 | 0.890 | 103 | 13 | 69 |
+| flowbeta | flowbeta | 1 | 3 | 40.7 ± 8.1 | 0.922 | 89 | 9 | 65 |
+| flowbeta | flowbeta | 10 | 3 | 46.7 ± 1.2 | 0.914 | 80 | 12 | 53 |
+| flowbeta | flowbeta | 100 | 3 | 50.7 ± 9.0 | 0.920 | 74 | 10 | 46 |
+| flowbeta | flowbeta | 2 | 3 | 39.3 ± 2.3 | 0.894 | 91 | 10 | 57 |
+| flowbeta | flowbeta | 4 | 3 | 51.3 ± 6.4 | 0.938 | 73 | 6 | 55 |

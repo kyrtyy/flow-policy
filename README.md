@@ -19,7 +19,8 @@ Three training seeds, 50 evaluation episodes each (eval seed 100000, same initia
 | Flow | 4 | 55.3 ± 6.4 | 0.926 | ~39 ms |
 | Flow | 100 | 60.7 ± 8.3 | 0.926 | ~727 ms |
 | Reflow (distilled from Flow, 10-step teacher) | 2 | **57.3 ± 3.1** | 0.919 | ~21 ms |
-| Shortcut (Flow + step-size conditioning, 2 of 3 seeds so far) | 1 | **55.0 ± 7.1** | 0.903 | ~12 ms |
+| Shortcut (Flow + step-size conditioning, 40k fine-tune) | 1 | **55.3 ± 5.0** | 0.917 | ~12 ms |
+| Shortcut | 10 | 66.0 ± 3.5 | 0.939 | ~100 ms |
 | Flow 1-step + Diffusion plan every 4th chunk | mixed | 60.7 ± 8.1 | 0.952 | — |
 | ACT | 1 | 26.7 ± 6.1 | 0.710 | — |
 | BC-MLP (1 of 3 seeds so far) | 1 | 38.0 | 0.770 | — |
@@ -29,14 +30,17 @@ Reproduction check: LeRobot's published `diffusion_pusht` reports 65.4% success 
 What did not help (full results in [`results/RESULTS.md`](results/RESULTS.md)):
 - Uneven step schedules such as `[0, 0.1, 1]`, and warm-starting from the previous plan: about 50–52% at 1–2 passes.
 - Logit-normal t-sampling (small model): 1-pass success fell to 2.7%. It barely trains near t=0, which is where a 1-pass sampler starts.
+- π0-style Beta t-sampling (small model): 40.7% at 1 pass vs 43.3% for uniform. No gain.
 - Combining reflow with warm start or the Diffusion guide: no gain over reflow alone.
+
+Caveat on shortcut: it gets 40k extra training steps on top of the 200k Flow checkpoint, and no Flow-only control with the same extra steps has been run. Oddly, it scores lower at 2–4 passes (48–51%) than at 1 pass.
 
 At full size, most 1-pass failures are near misses (final coverage ≥ 0.85), not wrong strategy. Those are the failures that reflow and shortcut reduce.
 
 ### Open
 
 - Diffusion's 0% at 1 pass may be an artifact of ε-prediction. An x0-prediction ("sample") Diffusion baseline is training. Until it is evaluated, "Flow beats Diffusion at 1 pass" is not settled. The 2-pass claim (reflow 57% vs Diffusion 44–47%) is the safer headline.
-- Remaining seeds still to finish: shortcut s1002, BC-MLP s1000/s1002, and beta t-sampling s1002.
+- Remaining seeds still to finish: BC-MLP s1000/s1002.
 - Final evaluation at 200 episodes per seed, with latency measured on an idle GPU.
 
 ## Layout
