@@ -44,7 +44,7 @@ Three training seeds, 50 evaluation episodes each (eval seed 100000, same initia
 - Replanning more often (every 4 actions instead of 8): about −20 points. Committing longer (12 actions) also hurts.
 - Logit-normal or Beta t-sampling during training: no gain; logit-normal collapses 1-pass success to 3%.
 
-All runs, including these, are in [`results/RESULTS.md`](results/RESULTS.md).
+Full per-variant tables for the results above are in [`results/RESULTS.md`](results/RESULTS.md).
 
 ### Open
 

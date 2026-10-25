@@ -1,6 +1,6 @@
-# All results (PushT, 50 episodes per training seed, eval seed 100000)
+# Results (PushT, full-size models, 50 episodes per training seed, eval seed 100000)
 
-Pooled over training seeds from each run's `eval_info.json` with `python scripts/breakdown.py results/<dir> ...`. Failures split by final coverage: gross (< 0.6) vs near miss (>= 0.85). `*_full` and `full` = full-size models (200k steps; reflow 20k and shortcut 40k fine-tunes on top); `fast`, `guided`, `flowln`, `flowbeta` = small models (40k steps). `diffx0` = Diffusion with x0 ("sample") prediction. `flowcont` = Flow trained 40k extra steps (control for shortcut). `explore_*` = inference-time combinations (`a` = n_action_steps, `n` = noise temperature, `w` = warm start).
+Pooled over training seeds from each run's `eval_info.json` with `python scripts/breakdown.py results/<dir> ...`. Failures split by final coverage: gross (< 0.6) vs near miss (>= 0.85). `diffx0` = Diffusion with x0 ("sample") prediction. `flowcont` = Flow trained 40k extra steps (control for shortcut). `guide4_1_w0.5` = 1-pass shortcut with a 100-step Diffusion plan every 4th chunk.
 
 | results | policy | variant | seeds | success % | coverage | fails | gross <0.6 | near >=0.85 |
 |---|---|---|---|---|---|---|---|---|
@@ -47,16 +47,6 @@ Pooled over training seeds from each run's `eval_info.json` with `python scripts
 | flowcont_full | flowcont | 100 | 3 | 63.3 ± 6.1 | 0.949 | 55 | 6 | 40 |
 | flowcont_full | flowcont | 2 | 3 | 50.7 ± 4.2 | 0.909 | 74 | 14 | 51 |
 | flowcont_full | flowcont | 4 | 3 | 53.3 ± 1.2 | 0.918 | 70 | 13 | 51 |
-| explore_reflow | reflow | 1_a12 | 3 | 34.0 ± 10.0 | 0.860 | 99 | 19 | 60 |
-| explore_reflow | reflow | 1_a12_n0.8 | 3 | 40.7 ± 6.1 | 0.861 | 89 | 23 | 52 |
-| explore_reflow | reflow | 1_a4 | 3 | 28.7 ± 3.1 | 0.888 | 107 | 13 | 80 |
-| explore_reflow | reflow | 1_a4_n0.5 | 3 | 16.7 ± 10.1 | 0.856 | 125 | 15 | 83 |
-| explore_reflow | reflow | 1_a4_w0.3 | 3 | 26.0 ± 7.2 | 0.869 | 111 | 17 | 84 |
-| explore_reflow | reflow | 1_n0.5 | 3 | 46.7 ± 13.0 | 0.899 | 80 | 12 | 53 |
-| explore_reflow | reflow | 1_n0.8 | 3 | 49.3 ± 4.6 | 0.905 | 76 | 14 | 49 |
-| explore_reflow | reflow | 2_a12 | 3 | 50.0 ± 3.5 | 0.897 | 75 | 17 | 47 |
-| explore_reflow | reflow | 2_a4 | 3 | 24.0 ± 5.3 | 0.899 | 114 | 10 | 94 |
-| explore_reflow | reflow | guide4_1_w0.5 | 3 | 61.3 ± 1.2 | 0.941 | 58 | 9 | 40 |
 | explore_shortcut | shortcut | 1_a12 | 3 | 42.7 ± 13.6 | 0.867 | 86 | 22 | 51 |
 | explore_shortcut | shortcut | 1_a12_n0.8 | 3 | 49.3 ± 6.4 | 0.887 | 76 | 18 | 45 |
 | explore_shortcut | shortcut | 1_a4 | 3 | 38.0 ± 6.0 | 0.917 | 93 | 11 | 75 |
@@ -67,46 +57,3 @@ Pooled over training seeds from each run's `eval_info.json` with `python scripts
 | explore_shortcut | shortcut | 2_a12 | 3 | 46.7 ± 12.2 | 0.916 | 80 | 9 | 55 |
 | explore_shortcut | shortcut | 2_a4 | 3 | 32.0 ± 5.3 | 0.911 | 102 | 8 | 80 |
 | explore_shortcut | shortcut | guide4_1_w0.5 | 3 | 66.7 ± 3.1 | 0.948 | 50 | 7 | 35 |
-| guided_full | flow | guide0_1_w0.5 | 3 | 50.7 ± 9.0 | 0.913 | 74 | 13 | 52 |
-| guided_full | flow | guide2_1_w0.5 | 3 | 60.0 ± 3.5 | 0.943 | 60 | 6 | 42 |
-| guided_full | flow | guide4_1_w0.5 | 3 | 60.7 ± 8.1 | 0.952 | 59 | 6 | 46 |
-| combo_full | reflow | 1_w0.3 | 3 | 53.3 ± 1.2 | 0.907 | 70 | 12 | 47 |
-| combo_full | reflow | [0,0.1,1] | 3 | 53.3 ± 6.1 | 0.917 | 70 | 10 | 45 |
-| combo_full | reflow | [0,0.1,1]_w0.3 | 3 | 44.7 ± 9.0 | 0.894 | 83 | 15 | 54 |
-| combo_full | reflow | guide0_1_w0.5 | 3 | 49.3 ± 6.4 | 0.929 | 76 | 9 | 57 |
-| combo_full | reflow | guide4_1_w0.5 | 3 | 57.3 ± 8.1 | 0.942 | 64 | 7 | 49 |
-| hybrid_full | flow | 1_w0.3 | 3 | 52.0 ± 2.0 | 0.921 | 72 | 11 | 52 |
-| hybrid_full | flow | 1_w0.6 | 3 | 50.7 ± 3.1 | 0.898 | 74 | 13 | 46 |
-| hybrid_full | flow | [0,0.05,0.15,1] | 3 | 47.3 ± 1.2 | 0.899 | 79 | 14 | 48 |
-| hybrid_full | flow | [0,0.1,1] | 3 | 50.7 ± 5.0 | 0.915 | 74 | 13 | 49 |
-| hybrid_full | flow | [0,0.1,1]_w0.3 | 3 | 50.0 ± 3.5 | 0.903 | 75 | 13 | 49 |
-| fast | act | default | 3 | 20.7 ± 7.0 | 0.644 | 119 | 68 | 36 |
-| fast | bcmlp | default | 3 | 18.0 ± 10.4 | 0.686 | 123 | 56 | 48 |
-| fast | diffusion | DDIM_1 | 3 | 0.0 ± 0.0 | 0.139 | 150 | 148 | 0 |
-| fast | diffusion | DDIM_10 | 3 | 38.0 ± 10.0 | 0.901 | 93 | 16 | 62 |
-| fast | diffusion | DDIM_100 | 3 | 48.0 ± 11.1 | 0.929 | 78 | 6 | 52 |
-| fast | diffusion | DDIM_2 | 3 | 31.3 ± 3.1 | 0.862 | 103 | 23 | 64 |
-| fast | diffusion | DDIM_4 | 3 | 37.3 ± 9.0 | 0.920 | 94 | 9 | 69 |
-| fast | diffusion | DDPM_1 | 3 | 0.0 ± 0.0 | 0.144 | 150 | 148 | 0 |
-| fast | diffusion | DDPM_10 | 3 | 43.3 ± 8.1 | 0.928 | 85 | 6 | 61 |
-| fast | diffusion | DDPM_100 | 3 | 50.7 ± 1.2 | 0.927 | 74 | 6 | 50 |
-| fast | diffusion | DDPM_2 | 3 | 28.7 ± 7.0 | 0.815 | 107 | 30 | 57 |
-| fast | diffusion | DDPM_4 | 3 | 38.7 ± 6.1 | 0.909 | 92 | 10 | 64 |
-| fast | flow | 1 | 3 | 43.3 ± 11.5 | 0.889 | 85 | 18 | 57 |
-| fast | flow | 10 | 3 | 46.7 ± 8.1 | 0.921 | 80 | 9 | 55 |
-| fast | flow | 100 | 3 | 49.3 ± 10.1 | 0.925 | 76 | 10 | 49 |
-| fast | flow | 2 | 3 | 49.3 ± 22.1 | 0.913 | 76 | 14 | 51 |
-| fast | flow | 4 | 3 | 45.3 ± 11.7 | 0.906 | 82 | 13 | 55 |
-| guided | flow | guide0_1_w0.5 | 3 | 48.0 ± 14.4 | 0.920 | 78 | 9 | 54 |
-| guided | flow | guide2_1_w0.5 | 3 | 53.3 ± 1.2 | 0.943 | 70 | 5 | 49 |
-| guided | flow | guide4_1_w0.5 | 3 | 54.7 ± 3.1 | 0.925 | 68 | 7 | 41 |
-| flowln | flowln | 1 | 3 | 2.7 ± 1.2 | 0.666 | 146 | 63 | 44 |
-| flowln | flowln | 10 | 3 | 32.7 ± 14.0 | 0.908 | 101 | 9 | 68 |
-| flowln | flowln | 100 | 3 | 38.7 ± 10.1 | 0.913 | 92 | 9 | 65 |
-| flowln | flowln | 2 | 3 | 29.3 ± 9.0 | 0.894 | 106 | 9 | 70 |
-| flowln | flowln | 4 | 3 | 31.3 ± 4.2 | 0.890 | 103 | 13 | 69 |
-| flowbeta | flowbeta | 1 | 3 | 40.7 ± 8.1 | 0.922 | 89 | 9 | 65 |
-| flowbeta | flowbeta | 10 | 3 | 46.7 ± 1.2 | 0.914 | 80 | 12 | 53 |
-| flowbeta | flowbeta | 100 | 3 | 50.7 ± 9.0 | 0.920 | 74 | 10 | 46 |
-| flowbeta | flowbeta | 2 | 3 | 39.3 ± 2.3 | 0.894 | 91 | 10 | 57 |
-| flowbeta | flowbeta | 4 | 3 | 51.3 ± 6.4 | 0.938 | 73 | 6 | 55 |
