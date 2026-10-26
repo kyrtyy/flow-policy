@@ -45,10 +45,9 @@ class Noisy:
     def __call__(self, batch_size, global_cond=None, generator=None, noise=None):
         cfg = self.m.config
         x0 = torch.randn(batch_size, cfg.horizon, cfg.action_feature.shape[0], device=global_cond.device)
-        x1 = self.mean(x0, global_cond)
-        if self.noise:
-            x1 = x1 + self.log_std.exp() * torch.randn_like(x1)
-        self.rec.append((global_cond, x0, x1))
+        mu = self.mean(x0, global_cond)
+        x1 = mu + self.log_std.exp() * torch.randn_like(mu) if self.noise else mu
+        self.rec.append((global_cond, x0, x1, mu))
         return x1.clamp(-1, 1)  # only the executed copy is clamped; log-probs use the raw x1
 
 
@@ -85,9 +84,9 @@ def rollout(env, policy, noisy, procs, seeds, device):
         prev_phi = phi
         if done.all():
             break
-    cond, x0, x1 = (torch.stack(z) for z in zip(*noisy.rec))
+    cond, x0, x1, mu = (torch.stack(z) for z in zip(*noisy.rec))
     return dict(
-        cond=cond, x0=x0, x1=x1,
+        cond=cond, x0=x0, x1=x1, mu=mu,
         rew=torch.tensor(np.array(rew), dtype=torch.float32, device=device),
         valid=torch.tensor(np.array(valid), device=device),
         done=torch.tensor(np.array(dones), dtype=torch.float32, device=device),
@@ -109,6 +108,7 @@ def main():
     p.add_argument("--epochs", type=int, default=5)
     p.add_argument("--minibatch", type=int, default=128)
     p.add_argument("--full-batch", action="store_true", help="one actor step per epoch on the whole buffer")
+    p.add_argument("--critic-plan", action="store_true", help="critic also sees the executed noise-free plan")
     p.add_argument("--clip", type=float, default=0.1)
     p.add_argument("--target-kl", type=float, default=0.02)
     p.add_argument("--gamma", type=float, default=0.99)
@@ -176,9 +176,11 @@ def main():
             bufs.append(b), succ.append(s)
         C = min(b["rew"].shape[0] for b in bufs)
         cat = lambda key: torch.cat([b[key][:C] for b in bufs], 1)  # noqa: E731  (C, N, ...)
-        cond, x0, x1, rew, valid, done = (cat(k) for k in ("cond", "x0", "x1", "rew", "valid", "done"))
+        cond, x0, x1, mu, rew, valid, done = (cat(k) for k in ("cond", "x0", "x1", "mu", "rew", "valid", "done"))
         tfeat = (torch.arange(C, device=dev, dtype=torch.float32) / C)[:, None, None].expand(C, cond.shape[1], 1)
-        obs_v = torch.cat([cond, tfeat], -1)
+        # The noise-free plan mu(x0) decides most of a chunk's outcome, but only the injected noise is credited by the
+        # log-prob. x0 doesn't depend on the weights, so a baseline that sees mu is still unbiased and removes that variance.
+        obs_v = torch.cat([cond, tfeat] + ([mu[:, :, sl].flatten(2)] if a.critic_plan else []), -1)
         if critic is None:
             critic = nn.Sequential(
                 nn.Linear(obs_v.shape[-1], 256), nn.Mish(), nn.Linear(256, 256), nn.Mish(), nn.Linear(256, 1)
