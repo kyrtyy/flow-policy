@@ -1,9 +1,9 @@
-"""ReinFlow (Zhang et al. 2025): PPO fine-tuning of a 1-pass flow / shortcut policy on PushT.
+"""ReinFlow (Zhang et al. 2025): PPO fine-tuning of a few-pass flow / shortcut policy on PushT.
 
     python scripts/reinflow.py outputs/train/shortcut_s1000_40000 --out outputs/train/reinflow_s1000
 
-The Euler step gets Gaussian noise, x1 = x0 + v(x0) + sigma * eps, so each action chunk has a tractable
-log-probability. The vision encoder is frozen: global_cond is computed during the rollout and stored, so
+Each of the K Euler steps gets Gaussian noise, x_{k+1} = x_k + v(x_k) / K + sigma_k * eps, so each action
+chunk's sampling chain has a tractable log-probability. The vision encoder is frozen: global_cond is computed during the rollout and stored, so
 PPO updates never touch images. Reward is the change in coverage plus 1 on success (the raw per-step
 coverage reward pays more for hovering at 94% than for finishing). Training seeds start at 0 and the
 held-out monitor uses 200000+, both disjoint from the 100000+ eval seeds. The saved checkpoint is a plain
@@ -33,27 +33,43 @@ CKPT = "checkpoints/last/pretrained_model"
 
 
 class Noisy:
-    """Replaces FlowModel.conditional_sample during rollouts: one noisy Euler step, recorded for PPO."""
+    """Replaces FlowModel.conditional_sample during rollouts: K noisy Euler steps, the chain recorded for PPO.
+
+    log_std is (K, action_dim): each step has its own noise level, so early steps (where the plan's mode is
+    decided) can explore more than the last one. With K=1 only the final jitter gets credit.
+    """
 
     def __init__(self, m, log_std):
         self.m, self.log_std, self.rec, self.noise = m, log_std, [], True
+        self.k = log_std.shape[0]
 
-    def mean(self, x0, cond):
-        one = torch.ones(x0.shape[0], device=x0.device)
-        return x0 + self.m._unet(x0, 0 * one, cond, d=one)
+    def means(self, x, cond):
+        """x: (B, K, H, A) chain states before each step -> the K Euler-step means."""
+        b, k = x.shape[:2]
+        t = (torch.arange(k, device=x.device, dtype=x.dtype) / k).repeat(b)
+        d = torch.full_like(t, 1 / k)
+        xf = x.flatten(0, 1)
+        return (xf + self.m._unet(xf, t, cond.repeat_interleave(k, 0), d=d) / k).unflatten(0, (b, k))
 
     def __call__(self, batch_size, global_cond=None, generator=None, noise=None):
         cfg = self.m.config
-        x0 = torch.randn(batch_size, cfg.horizon, cfg.action_feature.shape[0], device=global_cond.device)
-        mu = self.mean(x0, global_cond)
-        x1 = mu + self.log_std.exp() * torch.randn_like(mu) if self.noise else mu
-        self.rec.append((global_cond, x0, x1, mu))
-        return x1.clamp(-1, 1)  # only the executed copy is clamped; log-probs use the raw x1
+        xs = [torch.randn(batch_size, cfg.horizon, cfg.action_feature.shape[0], device=global_cond.device)]
+        for i in range(self.k):
+            mu = self._step(xs[-1], i, global_cond)
+            xs.append(mu + self.log_std[i].exp() * torch.randn_like(mu) if self.noise else mu)
+        self.rec.append((global_cond, torch.stack(xs, 1)))
+        return xs[-1].clamp(-1, 1)  # only the executed copy is clamped; log-probs use the raw chain
+
+    def _step(self, x, i, cond):
+        t = torch.full(x.shape[:1], i / self.k, device=x.device)
+        return x + self.m._unet(x, t, cond, d=torch.full_like(t, 1 / self.k)) / self.k
 
 
-def logp(noisy, cond, x0, x1, sl):
-    mu = noisy.mean(x0, cond)
-    return torch.distributions.Normal(mu[:, sl], noisy.log_std.exp()).log_prob(x1[:, sl]).sum((1, 2))
+def logp(noisy, cond, xs, sl):
+    """Log-prob of a recorded chain xs (B, K+1, H, A). The last step counts only the executed actions; earlier
+    steps count every dimension, since all of them feed the next U-Net pass."""
+    lp = torch.distributions.Normal(noisy.means(xs[:, :-1], cond), noisy.log_std.exp()[None, :, None]).log_prob(xs[:, 1:])
+    return lp[:, :-1].sum((1, 2, 3)) + lp[:, -1, sl].sum((1, 2))
 
 
 def rollout(env, policy, noisy, procs, seeds, device):
@@ -84,9 +100,9 @@ def rollout(env, policy, noisy, procs, seeds, device):
         prev_phi = phi
         if done.all():
             break
-    cond, x0, x1, mu = (torch.stack(z) for z in zip(*noisy.rec))
+    cond, xs = (torch.stack(z) for z in zip(*noisy.rec))
     return dict(
-        cond=cond, x0=x0, x1=x1, mu=mu,
+        cond=cond, xs=xs,
         rew=torch.tensor(np.array(rew), dtype=torch.float32, device=device),
         valid=torch.tensor(np.array(valid), device=device),
         done=torch.tensor(np.array(dones), dtype=torch.float32, device=device),
@@ -102,13 +118,14 @@ def main():
     p.add_argument("--rollouts", type=int, default=2, help="batched episodes per iteration")
     p.add_argument("--actor-lr", type=float, default=1e-5)
     p.add_argument("--critic-lr", type=float, default=1e-3)
-    p.add_argument("--std", type=float, default=0.05, help="initial noise std (normalised actions)")
+    p.add_argument("--steps", type=int, default=1, help="K noisy Euler steps (= passes at deployment)")
+    p.add_argument("--std", type=float, default=0.05, help="initial noise std of the last step (normalised actions)")
+    p.add_argument("--std-early", type=float, default=0.1, help="initial noise std of the steps before the last")
     p.add_argument("--std-min", type=float, default=0.01)
     p.add_argument("--std-max", type=float, default=0.1)
     p.add_argument("--epochs", type=int, default=5)
     p.add_argument("--minibatch", type=int, default=128)
     p.add_argument("--full-batch", action="store_true", help="one actor step per epoch on the whole buffer")
-    p.add_argument("--critic-plan", action="store_true", help="critic also sees the executed noise-free plan")
     p.add_argument("--clip", type=float, default=0.1)
     p.add_argument("--target-kl", type=float, default=0.02)
     p.add_argument("--gamma", type=float, default=0.99)
@@ -130,7 +147,8 @@ def main():
     m = policy.diffusion
     m.rgb_encoder.requires_grad_(False)
     actor = [q for q in m.parameters() if q.requires_grad]
-    log_std = nn.Parameter(torch.full((m.config.action_feature.shape[0],), float(np.log(a.std)), device=dev))
+    init = torch.tensor([a.std_early] * (a.steps - 1) + [a.std], device=dev).log()
+    log_std = nn.Parameter(init[:, None].repeat(1, m.config.action_feature.shape[0]))
     noisy = Noisy(m, log_std)
     m.conditional_sample = noisy
     pre, post = make_pre_post_processors(
@@ -176,11 +194,9 @@ def main():
             bufs.append(b), succ.append(s)
         C = min(b["rew"].shape[0] for b in bufs)
         cat = lambda key: torch.cat([b[key][:C] for b in bufs], 1)  # noqa: E731  (C, N, ...)
-        cond, x0, x1, mu, rew, valid, done = (cat(k) for k in ("cond", "x0", "x1", "mu", "rew", "valid", "done"))
+        cond, xs, rew, valid, done = (cat(k) for k in ("cond", "xs", "rew", "valid", "done"))
         tfeat = (torch.arange(C, device=dev, dtype=torch.float32) / C)[:, None, None].expand(C, cond.shape[1], 1)
-        # The noise-free plan mu(x0) decides most of a chunk's outcome, but only the injected noise is credited by the
-        # log-prob. x0 doesn't depend on the weights, so a baseline that sees mu is still unbiased and removes that variance.
-        obs_v = torch.cat([cond, tfeat] + ([mu[:, :, sl].flatten(2)] if a.critic_plan else []), -1)
+        obs_v = torch.cat([cond, tfeat], -1)
         if critic is None:
             critic = nn.Sequential(
                 nn.Linear(obs_v.shape[-1], 256), nn.Mish(), nn.Linear(256, 256), nn.Mish(), nn.Linear(256, 1)
@@ -200,8 +216,8 @@ def main():
             ret = adv + v
             idx = valid.flatten().nonzero().squeeze(1)
             flat = lambda z: z.flatten(0, 1)[idx]  # noqa: E731
-            cond, x0, x1, obs_v, adv, ret = map(flat, (cond, x0, x1, obs_v, adv, ret))
-            old = torch.cat([logp(noisy, cond[j : j + 256], x0[j : j + 256], x1[j : j + 256], sl) for j in range(0, len(idx), 256)])
+            cond, xs, obs_v, adv, ret = map(flat, (cond, xs, obs_v, adv, ret))
+            old = torch.cat([logp(noisy, cond[j : j + 64], xs[j : j + 64], sl) for j in range(0, len(idx), 64)])
             adv = (adv - adv.mean()) / (adv.std() + 1e-8)
 
         # PPO.
@@ -215,7 +231,7 @@ def main():
                 opt_c.zero_grad(), vloss.backward(), opt_c.step()
                 if not update_actor:
                     continue
-                new = logp(noisy, cond[mb], x0[mb], x1[mb], sl)
+                new = logp(noisy, cond[mb], xs[mb], sl)
                 ratio = (new - old[mb]).exp()
                 if ep == 0 and j == 0:
                     assert (ratio - 1).abs().max() < 1e-3, f"ratio {ratio.min()}..{ratio.max()} at the first step"
@@ -229,7 +245,7 @@ def main():
                     nn.utils.clip_grad_norm_(actor, 1.0)
                     opt_a.step(), opt_a.zero_grad()
                     with torch.no_grad():
-                        log_std.clamp_(np.log(a.std_min), np.log(a.std_max))
+                        log_std.clamp_(np.log(a.std_min), np.log(max(a.std_max, a.std_early)))
                     stats.update(kl=kl, clipfrac=clipped, actor_steps=stats["actor_steps"] + 1)
                     kl, clipped = 0.0, 0.0
                 update_actor = update_actor and stats["kl"] <= a.target_kl
