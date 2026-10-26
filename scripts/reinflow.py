@@ -108,6 +108,7 @@ def main():
     p.add_argument("--std-max", type=float, default=0.1)
     p.add_argument("--epochs", type=int, default=5)
     p.add_argument("--minibatch", type=int, default=128)
+    p.add_argument("--full-batch", action="store_true", help="one actor step per epoch on the whole buffer")
     p.add_argument("--clip", type=float, default=0.1)
     p.add_argument("--target-kl", type=float, default=0.02)
     p.add_argument("--gamma", type=float, default=0.99)
@@ -205,6 +206,7 @@ def main():
         stats, update_actor = {"kl": 0.0, "clipfrac": 0.0, "actor_steps": 0}, it >= a.critic_warmup
         for ep in range(a.epochs):
             perm = torch.randperm(len(idx), device=dev)
+            kl, clipped = 0.0, 0.0
             for j in range(0, len(idx), a.minibatch):
                 mb = perm[j : j + a.minibatch]
                 vloss = (critic(obs_v[mb]).squeeze(-1) - ret[mb]).square().mean()
@@ -216,15 +218,18 @@ def main():
                 if ep == 0 and j == 0:
                     assert (ratio - 1).abs().max() < 1e-3, f"ratio {ratio.min()}..{ratio.max()} at the first step"
                 loss = -torch.min(ratio * adv[mb], ratio.clamp(1 - a.clip, 1 + a.clip) * adv[mb]).mean()
-                opt_a.zero_grad(), loss.backward()
-                nn.utils.clip_grad_norm_(actor, 1.0)
-                opt_a.step()
+                w = len(mb) / len(idx) if a.full_batch else 1.0
+                (loss * w).backward()
                 with torch.no_grad():
-                    log_std.clamp_(np.log(a.std_min), np.log(a.std_max))
-                    stats["kl"] = ((ratio - 1) - (new - old[mb])).mean().item()  # KL before this step
-                    stats["clipfrac"] = ((ratio - 1).abs() > a.clip).float().mean().item()
-                    stats["actor_steps"] += 1
-                # Stop moving the actor once it has drifted target_kl from the rollout policy; the critic keeps fitting.
+                    kl += w * ((ratio - 1) - (new - old[mb])).mean().item()  # KL before this step
+                    clipped += w * ((ratio - 1).abs() > a.clip).float().mean().item()
+                if not a.full_batch or j + a.minibatch >= len(idx):
+                    nn.utils.clip_grad_norm_(actor, 1.0)
+                    opt_a.step(), opt_a.zero_grad()
+                    with torch.no_grad():
+                        log_std.clamp_(np.log(a.std_min), np.log(a.std_max))
+                    stats.update(kl=kl, clipfrac=clipped, actor_steps=stats["actor_steps"] + 1)
+                    kl, clipped = 0.0, 0.0
                 update_actor = update_actor and stats["kl"] <= a.target_kl
         row = {
             "iter": it, "train_success": 100 * np.concatenate(succ).mean(), "return": rew.sum(0).mean().item(),
