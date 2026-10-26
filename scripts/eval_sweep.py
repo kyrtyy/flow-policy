@@ -186,8 +186,10 @@ def main():
     p.add_argument("--explore", action="store_true", help="only the EXPLORE variants (knobs stacked on shortcut/reflow)")
     p.add_argument("--select", action="store_true", help="only the SELECT variants (N candidates, keep one)")
     p.add_argument("--refine", action="store_true", help="only the REFINE variants (flow, then last k diffusion steps)")
+    p.add_argument("--steps", type=int, nargs="+", default=STEPS, help="pass counts for the default sweep")
     p.add_argument("--guide-run", default=None, help="guide run name, {seed} filled in (default: flow -> diffusion)")
     a = p.parse_args()
+    STEPS[:] = a.steps
 
     rows = []
     r = random_baseline(a)
