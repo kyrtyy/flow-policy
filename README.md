@@ -46,6 +46,7 @@ Polish latencies (11/15/19/27 ms for 1/2/3/5 steps) were measured while another 
 - **Replanning more often** (every 4 actions instead of 8): about −10 points, even when the candidate that continues the previous plan is kept, so the loss is not from switching modes.
 - Committing longer (12 actions), lower noise temperature, uneven step schedules, warm-starting from the previous plan: no gain.
 - Logit-normal or Beta t-sampling during training: no gain; logit-normal collapses 1-pass success to 3%.
+- **ReinFlow** (PPO fine-tuning of the 1-pass Shortcut policy with learned Gaussian noise on the Euler step, `scripts/reinflow.py`): about 15 settings of learning rate, noise level, batch size and critic input, up to 180 iterations (~9k training episodes) each. Training and held-out success stayed flat; the best held-out checkpoint scores 50.0% at 200 episodes vs 53.5% for its base model. With 250M weights, one Adam step at lr 1e-6 already moves the policy past the trust region, so PPO needs lr ~1e-7 and learns very slowly.
 - Reflow (Flow distilled from its own 10-step samples): no better than plain Flow at 200 episodes (49.5 / 53.8 / 60.5% at 1 / 2 / 4 passes).
 
 Full per-variant tables are in [`results/RESULTS.md`](results/RESULTS.md).
