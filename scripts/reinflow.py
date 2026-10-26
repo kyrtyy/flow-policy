@@ -141,7 +141,7 @@ def main():
     sl = slice(policy.config.n_obs_steps - 1, policy.config.n_obs_steps - 1 + policy.config.n_action_steps)
 
     critic = None
-    opt_a = torch.optim.Adam([{"params": actor}, {"params": [log_std], "lr": 1e-3}], lr=a.actor_lr)
+    opt_a = torch.optim.Adam([{"params": actor}, {"params": [log_std], "lr": 1e-3}], lr=a.actor_lr, foreach=False)  # foreach needs a 1 GB temp copy: OOM on 6 GB cards
     a.out.mkdir(parents=True, exist_ok=True)
     log = open(a.out / "log.jsonl", "a")
     best, next_seed, t_start = 0.0, a.seed * 1_000_000, time.time()
